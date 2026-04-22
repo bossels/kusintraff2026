@@ -328,7 +328,7 @@ function render(){
   c.innerHTML=`<div class="wrap"><div class="tb">
     <button class="t ${S.tab==='anmalan'?'a':''}" onclick="S.tab='anmalan';render()">Anmälan</button>
     <button class="t ${S.tab==='program'?'a':''}" onclick="S.tab='program';render()">Program</button>
-    <button class="t ${S.tab==='oversikt'?'a':''}" onclick="S.tab='oversikt';render()">Översikt</button>
+    <button class="t ${S.tab==='oversikt'?'a':''}" onclick="S.tab='oversikt';loadRsvps().then(()=>render())">Översikt</button>
   </div>
   ${S.tab==='anmalan'?`<div class="og">
     <div class="sc"><div class="sn" style="color:#27500A;">${cnt.ja}</div><div class="slb">Kommer</div></div>
