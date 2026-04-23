@@ -224,11 +224,8 @@ async function pick(k, svar, relation, fornamn, efternamn){
     S.rsvps[k] = svar;
   }
   render();
-  // Spara i bakgrunden
-  await saveRsvp(relation, fornamn, efternamn, svar);
-  // Ladda om från SharePoint för att säkerställa
-  await loadRsvps();
-  render();
+  // Spara i bakgrunden utan att läsa om – undviker att gamla värdet blinkar tillbaka
+  saveRsvp(relation, fornamn, efternamn, svar);
 }
 
 function sortBy(col){
