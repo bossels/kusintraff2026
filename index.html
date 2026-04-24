@@ -163,7 +163,7 @@ const ALL_GUESTS=[
 {r:"B433",f:"David",l:"Sundström"}
 ];
 
-let S={view:'login',user:null,rsvps:{},tab:'anmalan',sortCol:'r',sortDir:1,saving:false};
+let S={view:'login',user:null,rsvps:{},comments:{},tab:'anmalan',sortCol:'r',sortDir:1,saving:false};
 
 // Hämta alla svar från SharePoint via Power Automate
 async function loadRsvps(){
@@ -174,26 +174,36 @@ async function loadRsvps(){
     console.log('SharePoint returnerade:', items.length, 'rader');
     if(items.length > 0) console.log('Första raden:', JSON.stringify(items[0]));
     S.rsvps = {};
+    S.comments = {};
     items.forEach(item => {
       const rel = item.Relation || item.Title || '';
       const fnamn = item.Fornamn || '';
       const svar = item.Svar || '';
-      if(rel && fnamn && svar) {
-        S.rsvps[rel+':'+fnamn] = svar;
+      const kommentar = item.Kommentar || '';
+      if(rel && fnamn) {
+        if(svar) S.rsvps[rel+':'+fnamn] = svar;
+        if(kommentar) S.comments[rel+':'+fnamn] = kommentar;
       }
     });
   } catch(e){ console.error('Fel vid hämtning:', e); }
 }
 
 // Spara ett svar till SharePoint via Power Automate
-async function saveRsvp(relation, fornamn, efternamn, svar){
+async function saveRsvp(relation, fornamn, efternamn, svar, kommentar){
   try {
     await fetch(SPARA_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({relation, fornamn, efternamn, svar})
+      body: JSON.stringify({relation, fornamn, efternamn, svar, kommentar})
     });
   } catch(e){ console.error('Fel vid sparande:', e); }
+}
+
+async function saveKommentar(k, relation, fornamn, efternamn, kommentar){
+  const svar = S.rsvps[k] || '';
+  S.comments[k] = kommentar;
+  render();
+  saveRsvp(relation, fornamn, efternamn, svar, kommentar);
 }
 
 function login(){
@@ -212,7 +222,9 @@ function login(){
 
 function visibleForAnmalan(){
   if(!S.user)return[];
-  return ALL_GUESTS.filter(g=>g.r.startsWith(S.user.r));
+  // Ta bort nollor i slutet av relationen: B110 -> B11, B1120 -> B112
+  const baseRel = S.user.r.replace(/0+$/, '');
+  return ALL_GUESTS.filter(g=>g.r.startsWith(baseRel));
 }
 
 async function pick(k, svar, relation, fornamn, efternamn){
@@ -225,7 +237,7 @@ async function pick(k, svar, relation, fornamn, efternamn){
   }
   render();
   // Spara i bakgrunden utan att läsa om – undviker att gamla värdet blinkar tillbaka
-  saveRsvp(relation, fornamn, efternamn, svar);
+  saveRsvp(relation, fornamn, efternamn, svar, S.comments[k] || '');
 }
 
 function sortBy(col){
@@ -285,7 +297,8 @@ function renderOversikt(){
   const rows=sorted.map(g=>{
     const k=g.r+':'+g.f,v=S.rsvps[k];
     const badge=v==='ja'?'<span class="badge bj">✓ Kommer</span>':v==='kanske'?'<span class="badge bk">~ Kanske</span>':v==='nej'?'<span class="badge bn">✗ Kan ej</span>':'<span class="badge be">Ej svarat</span>';
-    return`<tr><td style="font-size:14px;">${g.f} ${g.l}</td><td style="color:#888;font-size:12px;">${g.r}</td><td>${badge}</td></tr>`;
+    const kom = S.comments[k] || '';
+    return`<tr><td style="font-size:14px;">${g.f} ${g.l}</td><td style="color:#888;font-size:12px;">${g.r}</td><td>${badge}</td><td style="font-size:12px;color:#555;">${kom}</td></tr>`;
   }).join('');
   const ja=ALL_GUESTS.filter(g=>S.rsvps[g.r+':'+g.f]==='ja').length;
   const kanske=ALL_GUESTS.filter(g=>S.rsvps[g.r+':'+g.f]==='kanske').length;
@@ -299,9 +312,10 @@ function renderOversikt(){
   <div class="card" style="padding:0;overflow:hidden;">
     <table class="ov-table">
       <thead><tr>
-        <th style="width:45%" onclick="sortBy('namn')" class="${S.sortCol==='namn'?'sorted':''}">Namn <span class="sort-arrow">${arrow('namn')}</span></th>
-        <th style="width:20%" onclick="sortBy('r')" class="${S.sortCol==='r'?'sorted':''}">Relation <span class="sort-arrow">${arrow('r')}</span></th>
-        <th style="width:35%" onclick="sortBy('status')" class="${S.sortCol==='status'?'sorted':''}">Svar <span class="sort-arrow">${arrow('status')}</span></th>
+        <th style="width:35%" onclick="sortBy('namn')" class="${S.sortCol==='namn'?'sorted':''}">Namn <span class="sort-arrow">${arrow('namn')}</span></th>
+        <th style="width:15%" onclick="sortBy('r')" class="${S.sortCol==='r'?'sorted':''}">Relation <span class="sort-arrow">${arrow('r')}</span></th>
+        <th style="width:25%" onclick="sortBy('status')" class="${S.sortCol==='status'?'sorted':''}">Svar <span class="sort-arrow">${arrow('status')}</span></th>
+        <th style="width:25%">Kommentar</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
@@ -318,11 +332,22 @@ function render(){
   vg.forEach(g=>{const v=S.rsvps[g.r+':'+g.f];if(v==='ja')cnt.ja++;else if(v==='kanske')cnt.k++;else if(v==='nej')cnt.n++;});
   const li=vg.length===0?'<p style="color:#888;">Inga att visa.</p>':vg.map(g=>{
     const k=g.r+':'+g.f,v=S.rsvps[k];
-    return`<div class="prow"><div><div class="pname">${g.f} ${g.l}</div><div class="prel">${g.r}</div></div><div class="cg">
-      <button class="cb ${v==='ja'?'cj':''}" onclick="pick('${k}','ja','${g.r}','${g.f}','${g.l}')">✓ Kommer</button>
-      <button class="cb ${v==='kanske'?'ck':''}" onclick="pick('${k}','kanske','${g.r}','${g.f}','${g.l}')">~ Kanske</button>
-      <button class="cb ${v==='nej'?'cn':''}" onclick="pick('${k}','nej','${g.r}','${g.f}','${g.l}')">✗ Kan ej</button>
-    </div></div>`;
+    const kom = S.comments[k] || '';
+    return`<div class="prow" style="flex-wrap:wrap;">
+      <div style="flex:1;min-width:150px;"><div class="pname">${g.f} ${g.l}</div><div class="prel">${g.r}</div></div>
+      <div class="cg">
+        <button class="cb ${v==='ja'?'cj':''}" onclick="pick('${k}','ja','${g.r}','${g.f}','${g.l}')">✓ Kommer</button>
+        <button class="cb ${v==='kanske'?'ck':''}" onclick="pick('${k}','kanske','${g.r}','${g.f}','${g.l}')">~ Kanske</button>
+        <button class="cb ${v==='nej'?'cn':''}" onclick="pick('${k}','nej','${g.r}','${g.f}','${g.l}')">✗ Kan ej</button>
+      </div>
+      <div style="width:100%;margin-top:6px;padding-left:0;">
+        <input type="text" placeholder="Kommentar (valfri)..." value="${kom.replace(/"/g,'&quot;')}"
+          style="width:100%;padding:5px 8px;font-size:12px;border:1px solid #ddd;border-radius:6px;background:#fafafa;"
+          onblur="saveKommentar('${k}','${g.r}','${g.f}','${g.l}',this.value)"
+          onkeydown="if(event.key==='Enter')this.blur()"
+        />
+      </div>
+    </div>`;
   }).join('');
   c.innerHTML=`<div class="wrap"><div class="tb">
     <button class="t ${S.tab==='anmalan'?'a':''}" onclick="S.tab='anmalan';render()">Anmälan</button>
