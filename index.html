@@ -371,7 +371,24 @@ function render(){
   </div>`;
 }
 
+
+function autoLoginFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const email = (params.get('email') || params.get('e') || '').trim().toLowerCase();
+  const relation = (params.get('relation') || params.get('r') || '').trim().toUpperCase();
+
+  // Om både e-post och relation finns i länken: logga in automatiskt
+  if(email && relation){
+    const ei = document.getElementById('ei');
+    const ri = document.getElementById('ri');
+    if(ei) ei.value = email;
+    if(ri) ri.value = relation;
+    login();
+  }
+}
+
 render();
+autoLoginFromUrl();
 </script>
 </body>
 </html>
