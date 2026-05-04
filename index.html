@@ -344,8 +344,9 @@ function render(){
   const c=document.getElementById('cnt');
   if(S.view==='login'){c.innerHTML='';return;}
   const vg=visibleForAnmalan();
+  // Räknarna visar ALLTID totalt för alla gäster, inte bara den inloggades gren
   const cnt={ja:0,k:0,n:0};
-  vg.forEach(g=>{const v=S.rsvps[g.r+':'+g.f];if(v==='ja')cnt.ja++;else if(v==='kanske')cnt.k++;else if(v==='nej')cnt.n++;});
+  ALL_GUESTS.forEach(g=>{const v=S.rsvps[g.r+':'+g.f];if(v==='ja')cnt.ja++;else if(v==='kanske')cnt.k++;else if(v==='nej')cnt.n++;});
   const li=vg.length===0?'<p style="color:#888;">Inga att visa.</p>':vg.map(g=>{
     const k=g.r+':'+g.f,v=S.rsvps[k];
     const kom = S.comments[k] || '';
@@ -368,7 +369,7 @@ function render(){
   c.innerHTML=`<div class="wrap"><div class="tb">
     <button class="t ${S.tab==='anmalan'?'a':''}" onclick="S.tab='anmalan';render()">Anmälan</button>
     <button class="t ${S.tab==='program'?'a':''}" onclick="S.tab='program';render()">Program</button>
-    <button class="t ${S.tab==='oversikt'?'a':''}" onclick="S.tab='oversikt';loadRsvps().then(()=>render())">Översikt</button>
+    <button class="t ${S.tab==='oversikt'?'a':''}" onclick="S.tab='oversikt';render()">Översikt</button>
     <button class="t ${S.tab==='hjalp'?'a':''}" onclick="S.tab='hjalp';render()">Hjälp</button>
   </div>
   ${S.tab==='anmalan'?`<div class="og">
@@ -379,7 +380,7 @@ function render(){
   ${S.tab==='program'?`<div class="card" style="padding:0;overflow:hidden;">
     <iframe src="program.html" style="width:100%;min-height:420px;border:none;padding:1.25rem;box-sizing:border-box;" onload="this.style.height=this.contentDocument.body.scrollHeight+40+'px'"></iframe>
   </div>`:''}
-  ${S.tab==='oversikt'?renderOversikt():''}
+  ${S.tab==='oversikt'?`<div style="text-align:right;margin-bottom:0.75rem;"><button onclick="loadRsvps().then(()=>render())" style="padding:6px 14px;font-size:12px;cursor:pointer;border-radius:6px;border:1px solid #ddd;background:#f5f4f0;color:#555;">↻ Uppdatera</button></div>${renderOversikt()}`:''}
   ${S.tab==='hjalp'?`<div class="card" style="padding:0;overflow:hidden;">
     <iframe src="hjalp.html" style="width:100%;min-height:300px;border:none;padding:1.25rem;box-sizing:border-box;" onload="this.style.height=this.contentDocument.body.scrollHeight+40+'px'"></iframe>
   </div>`:''}
