@@ -201,9 +201,8 @@ async function saveRsvp(relation, fornamn, efternamn, svar, kommentar){
 }
 
 async function saveKommentarByKey(k, kommentar){
-  const [rel, fornamn] = k.split(':');
-  const g = ALL_GUESTS.find(x => x.r === rel && x.f === fornamn);
-  if(!g) return;
+  const g = ALL_GUESTS.find(x => (x.r+':'+x.f) === k);
+  if(!g){ console.error('Hittade inte gäst för nyckel:', k); return; }
   saveKommentar(k, g.r, g.f, g.l, kommentar);
 }
 
@@ -222,6 +221,8 @@ function login(){
   if(!g){el.style.display='block';el.textContent='E-post eller relation stämmer inte.';return;}
   S.user=g;
   S.view='main';
+  // Rensa URL så inga parametrar syns
+  window.history.replaceState({}, document.title, window.location.pathname);
   // Visa spinner medan vi laddar svar
   document.getElementById('cnt').innerHTML='<div class="spinner">Laddar svar...</div>';
   hdr();
@@ -236,10 +237,9 @@ function visibleForAnmalan(){
 }
 
 function pickByKey(k, svar){
-  // Look up guest from key
-  const [rel, fornamn] = k.split(':');
-  const g = ALL_GUESTS.find(x => x.r === rel && x.f === fornamn);
-  if(!g) return;
+  // Look up guest by matching the full key r+':'+f
+  const g = ALL_GUESTS.find(x => (x.r+':'+x.f) === k);
+  if(!g){ console.error('Hittade inte gäst för nyckel:', k); return; }
   pick(k, svar, g.r, g.f, g.l);
 }
 
@@ -283,11 +283,11 @@ function hdr(){
         <div class="login-form">
           <h2>Logga in för att anmäla dig</h2>
           <label>E-postadress</label>
-          <input type="email" id="ei" placeholder="namn@exempel.se"/>
+          <input type="text" id="ei" placeholder="namn@exempel.se" onkeydown="if(event.key==='Enter')login()"/>
           <label>Relation (t.ex. B11)</label>
-          <input type="text" id="ri" placeholder="B11" style="text-transform:uppercase;"/>
+          <input type="text" id="ri" placeholder="B11" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter')login()"/>
           <p class="err" id="le"></p>
-          <button class="btn-login" onclick="login()">Logga in</button>
+          <button class="btn-login" onclick="event.preventDefault();login()">Logga in</button>
         </div>
       </div>
     </div>`;
