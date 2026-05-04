@@ -352,14 +352,14 @@ function render(){
     return`<div class="prow" style="flex-wrap:wrap;">
       <div style="flex:1;min-width:150px;"><div class="pname">${g.f} ${g.l}</div><div class="prel">${g.r}</div></div>
       <div class="cg">
-        <button class="cb ${v==='ja'?'cj':''}" onclick="pickByKey(${JSON.stringify(k)},'ja')">✓ Kommer</button>
-        <button class="cb ${v==='kanske'?'ck':''}" onclick="pickByKey(${JSON.stringify(k)},'kanske')">~ Kanske</button>
-        <button class="cb ${v==='nej'?'cn':''}" onclick="pickByKey(${JSON.stringify(k)},'nej')">✗ Kan ej</button>
+        <button class="cb ${v==='ja'?'cj':''}" data-k="${k}" data-s="ja" onclick="pickByKey(this.dataset.k,this.dataset.s)">✓ Kommer</button>
+        <button class="cb ${v==='kanske'?'ck':''}" data-k="${k}" data-s="kanske" onclick="pickByKey(this.dataset.k,this.dataset.s)">~ Kanske</button>
+        <button class="cb ${v==='nej'?'cn':''}" data-k="${k}" data-s="nej" onclick="pickByKey(this.dataset.k,this.dataset.s)">✗ Kan ej</button>
       </div>
       <div style="width:100%;margin-top:6px;padding-left:0;">
         <input type="text" placeholder="Kommentar (valfri)..." value="${kom.replace(/"/g,'&quot;')}"
           style="width:100%;padding:5px 8px;font-size:12px;border:1px solid #ddd;border-radius:6px;background:#fafafa;"
-          onblur="saveKommentarByKey(${JSON.stringify(k)},this.value)"
+          data-k="${k}" onblur="saveKommentarByKey(this.dataset.k,this.value)"
           onkeydown="if(event.key==='Enter')this.blur()"
         />
       </div>
