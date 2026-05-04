@@ -200,6 +200,13 @@ async function saveRsvp(relation, fornamn, efternamn, svar, kommentar){
   } catch(e){ console.error('Fel vid sparande:', e); }
 }
 
+async function saveKommentarByKey(k, kommentar){
+  const [rel, fornamn] = k.split(':');
+  const g = ALL_GUESTS.find(x => x.r === rel && x.f === fornamn);
+  if(!g) return;
+  saveKommentar(k, g.r, g.f, g.l, kommentar);
+}
+
 async function saveKommentar(k, relation, fornamn, efternamn, kommentar){
   const svar = S.rsvps[k] || '';
   S.comments[k] = kommentar;
@@ -226,6 +233,14 @@ function visibleForAnmalan(){
   // Ta bort nollor i slutet av relationen: B110 -> B11, B1120 -> B112
   const baseRel = S.user.r.replace(/0+$/, '');
   return ALL_GUESTS.filter(g=>g.r.startsWith(baseRel));
+}
+
+function pickByKey(k, svar){
+  // Look up guest from key
+  const [rel, fornamn] = k.split(':');
+  const g = ALL_GUESTS.find(x => x.r === rel && x.f === fornamn);
+  if(!g) return;
+  pick(k, svar, g.r, g.f, g.l);
 }
 
 async function pick(k, svar, relation, fornamn, efternamn){
@@ -337,14 +352,14 @@ function render(){
     return`<div class="prow" style="flex-wrap:wrap;">
       <div style="flex:1;min-width:150px;"><div class="pname">${g.f} ${g.l}</div><div class="prel">${g.r}</div></div>
       <div class="cg">
-        <button class="cb ${v==='ja'?'cj':''}" onclick="pick('${k}','ja','${g.r}','${g.f}','${g.l}')">✓ Kommer</button>
-        <button class="cb ${v==='kanske'?'ck':''}" onclick="pick('${k}','kanske','${g.r}','${g.f}','${g.l}')">~ Kanske</button>
-        <button class="cb ${v==='nej'?'cn':''}" onclick="pick('${k}','nej','${g.r}','${g.f}','${g.l}')">✗ Kan ej</button>
+        <button class="cb ${v==='ja'?'cj':''}" onclick="pickByKey(${JSON.stringify(k)},'ja')">✓ Kommer</button>
+        <button class="cb ${v==='kanske'?'ck':''}" onclick="pickByKey(${JSON.stringify(k)},'kanske')">~ Kanske</button>
+        <button class="cb ${v==='nej'?'cn':''}" onclick="pickByKey(${JSON.stringify(k)},'nej')">✗ Kan ej</button>
       </div>
       <div style="width:100%;margin-top:6px;padding-left:0;">
         <input type="text" placeholder="Kommentar (valfri)..." value="${kom.replace(/"/g,'&quot;')}"
           style="width:100%;padding:5px 8px;font-size:12px;border:1px solid #ddd;border-radius:6px;background:#fafafa;"
-          onblur="saveKommentar('${k}','${g.r}','${g.f}','${g.l}',this.value)"
+          onblur="saveKommentarByKey(${JSON.stringify(k)},this.value)"
           onkeydown="if(event.key==='Enter')this.blur()"
         />
       </div>
@@ -371,24 +386,7 @@ function render(){
   </div>`;
 }
 
-
-function autoLoginFromUrl(){
-  const params = new URLSearchParams(window.location.search);
-  const email = (params.get('email') || params.get('e') || '').trim().toLowerCase();
-  const relation = (params.get('relation') || params.get('r') || '').trim().toUpperCase();
-
-  // Om både e-post och relation finns i länken: logga in automatiskt
-  if(email && relation){
-    const ei = document.getElementById('ei');
-    const ri = document.getElementById('ri');
-    if(ei) ei.value = email;
-    if(ri) ri.value = relation;
-    login();
-  }
-}
-
 render();
-autoLoginFromUrl();
 </script>
 </body>
 </html>
