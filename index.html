@@ -39,6 +39,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1
 .cj{background:#27500A;color:white;border-color:#27500A;}
 .ck{background:#854F0B;color:white;border-color:#854F0B;}
 .cn{background:#A32D2D;color:white;border-color:#A32D2D;}
+.cbuss{background:#185FA5;color:white;border-color:#185FA5;}
+.cbil{background:#4A4A4A;color:white;border-color:#4A4A4A;}
+.trow{width:100%;display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed #eee;}
+.tlab{font-size:12px;color:#888;}
+.btbuss{background:#185FA5;color:white;}
+.btbil{background:#4A4A4A;color:white;}
 .og{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem;}
 .sc{background:#f5f4f0;border-radius:8px;padding:0.75rem;text-align:center;}
 .sn{font-size:24px;font-weight:500;}
@@ -174,7 +180,7 @@ const ALL_GUESTS=[
 {r:"B4330",f:"Tilda",l:"Wetterskog"}
 ];
 
-let S={view:'login',user:null,rsvps:{},comments:{},tab:'anmalan',sortCol:'r',sortDir:1,saving:false};
+let S={view:'login',user:null,rsvps:{},comments:{},transport:{},tab:'anmalan',sortCol:'r',sortDir:1,saving:false};
 
 // Hämta alla svar från SharePoint via Power Automate
 async function loadRsvps(){
@@ -186,26 +192,29 @@ async function loadRsvps(){
     if(items.length > 0) console.log('Första raden:', JSON.stringify(items[0]));
     S.rsvps = {};
     S.comments = {};
+    S.transport = {};
     items.forEach(item => {
       const rel = item.Relation || item.Title || '';
       const fnamn = item.Fornamn || '';
       const svar = item.Svar || '';
       const kommentar = item.Kommentar || '';
+      const transport = item.Transport || '';
       if(rel && fnamn) {
         if(svar) S.rsvps[rel+':'+fnamn] = svar;
         if(kommentar) S.comments[rel+':'+fnamn] = kommentar;
+        if(transport) S.transport[rel+':'+fnamn] = transport;
       }
     });
   } catch(e){ console.error('Fel vid hämtning:', e); }
 }
 
 // Spara ett svar till SharePoint via Power Automate
-async function saveRsvp(relation, fornamn, efternamn, svar, kommentar){
+async function saveRsvp(relation, fornamn, efternamn, svar, kommentar, transport){
   try {
     await fetch(SPARA_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({relation, fornamn, efternamn, svar, kommentar})
+      body: JSON.stringify({relation, fornamn, efternamn, svar, kommentar, transport: transport || ''})
     });
   } catch(e){ console.error('Fel vid sparande:', e); }
 }
@@ -220,7 +229,7 @@ async function saveKommentar(k, relation, fornamn, efternamn, kommentar){
   const svar = S.rsvps[k] || '';
   S.comments[k] = kommentar;
   render();
-  saveRsvp(relation, fornamn, efternamn, svar, kommentar);
+  saveRsvp(relation, fornamn, efternamn, svar, kommentar, S.transport[k] || '');
 }
 
 function login(){
@@ -263,7 +272,25 @@ async function pick(k, svar, relation, fornamn, efternamn){
   }
   render();
   // Spara i bakgrunden utan att läsa om – undviker att gamla värdet blinkar tillbaka
-  saveRsvp(relation, fornamn, efternamn, svar, S.comments[k] || '');
+  saveRsvp(relation, fornamn, efternamn, svar, S.comments[k] || '', S.transport[k] || '');
+}
+
+function pickTransportByKey(k, val){
+  const g = ALL_GUESTS.find(x => (x.r+':'+x.f) === k);
+  if(!g){ console.error('Hittade inte gäst för nyckel:', k); return; }
+  pickTransport(k, val, g.r, g.f, g.l);
+}
+
+async function pickTransport(k, val, relation, fornamn, efternamn){
+  // Toggle
+  if(S.transport[k]===val){
+    delete S.transport[k];
+    val = '';
+  } else {
+    S.transport[k] = val;
+  }
+  render();
+  saveRsvp(relation, fornamn, efternamn, S.rsvps[k] || '', S.comments[k] || '', val);
 }
 
 function sortBy(col){
@@ -273,6 +300,7 @@ function sortBy(col){
 }
 
 function statusOrder(v){return v==='ja'?0:v==='kanske'?1:v==='nej'?2:3;}
+function transportOrder(v){return v==='buss'?0:v==='bil'?1:2;}
 
 function hdr(){
   const h=document.getElementById('hdr');
@@ -317,6 +345,7 @@ function renderOversikt(){
     if(S.sortCol==='namn')return(a.f+' '+a.l).localeCompare(b.f+' '+b.l,'sv')*S.sortDir;
     if(S.sortCol==='r')return a.r.localeCompare(b.r,'sv')*S.sortDir;
     if(S.sortCol==='status')return(statusOrder(S.rsvps[a.r+':'+a.f])-statusOrder(S.rsvps[b.r+':'+b.f]))*S.sortDir;
+    if(S.sortCol==='transport')return(transportOrder(S.transport[a.r+':'+a.f])-transportOrder(S.transport[b.r+':'+b.f]))*S.sortDir;
     return 0;
   });
   const arrow=col=>S.sortCol===col?(S.sortDir===1?'↑':'↓'):'↕';
@@ -324,12 +353,16 @@ function renderOversikt(){
     const k=g.r+':'+g.f,v=S.rsvps[k];
     const badge=v==='ja'?'<span class="badge bj">✓ Kommer</span>':v==='kanske'?'<span class="badge bk">~ Kanske</span>':v==='nej'?'<span class="badge bn">✗ Kan ej</span>':'<span class="badge be">Ej svarat</span>';
     const kom = S.comments[k] || '';
-    return`<tr><td style="font-size:14px;">${g.f} ${g.l}</td><td style="color:#888;font-size:12px;">${g.r}</td><td>${badge}</td><td style="font-size:12px;color:#555;">${kom}</td></tr>`;
+    const t = S.transport[k] || '';
+    const tb = t==='buss'?'<span class="badge btbuss">Buss</span>':t==='bil'?'<span class="badge btbil">Egen bil</span>':'<span class="badge be">–</span>';
+    return`<tr><td style="font-size:14px;">${g.f} ${g.l}</td><td style="color:#888;font-size:12px;">${g.r}</td><td>${badge}</td><td>${tb}</td><td style="font-size:12px;color:#555;">${kom}</td></tr>`;
   }).join('');
   const ja=ALL_GUESTS.filter(g=>S.rsvps[g.r+':'+g.f]==='ja').length;
   const kanske=ALL_GUESTS.filter(g=>S.rsvps[g.r+':'+g.f]==='kanske').length;
   const nej=ALL_GUESTS.filter(g=>S.rsvps[g.r+':'+g.f]==='nej').length;
   const ej=ALL_GUESTS.length-ja-kanske-nej;
+  const buss=ALL_GUESTS.filter(g=>S.transport[g.r+':'+g.f]==='buss').length;
+  const bil=ALL_GUESTS.filter(g=>S.transport[g.r+':'+g.f]==='bil').length;
   return`<div class="og">
     <div class="sc"><div class="sn" style="color:#27500A;">${ja}</div><div class="slb">Kommer</div></div>
     <div class="sc"><div class="sn" style="color:#854F0B;">${kanske}</div><div class="slb">Kanske</div></div>
@@ -338,15 +371,16 @@ function renderOversikt(){
   <div class="card" style="padding:0;overflow:hidden;">
     <table class="ov-table">
       <thead><tr>
-        <th style="width:35%" onclick="sortBy('namn')" class="${S.sortCol==='namn'?'sorted':''}">Namn <span class="sort-arrow">${arrow('namn')}</span></th>
-        <th style="width:15%" onclick="sortBy('r')" class="${S.sortCol==='r'?'sorted':''}">Relation <span class="sort-arrow">${arrow('r')}</span></th>
-        <th style="width:25%" onclick="sortBy('status')" class="${S.sortCol==='status'?'sorted':''}">Svar <span class="sort-arrow">${arrow('status')}</span></th>
-        <th style="width:25%">Kommentar</th>
+        <th style="width:28%" onclick="sortBy('namn')" class="${S.sortCol==='namn'?'sorted':''}">Namn <span class="sort-arrow">${arrow('namn')}</span></th>
+        <th style="width:13%" onclick="sortBy('r')" class="${S.sortCol==='r'?'sorted':''}">Relation <span class="sort-arrow">${arrow('r')}</span></th>
+        <th style="width:20%" onclick="sortBy('status')" class="${S.sortCol==='status'?'sorted':''}">Svar <span class="sort-arrow">${arrow('status')}</span></th>
+        <th style="width:17%" onclick="sortBy('transport')" class="${S.sortCol==='transport'?'sorted':''}">Transport <span class="sort-arrow">${arrow('transport')}</span></th>
+        <th style="width:22%">Kommentar</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>
-  <p style="font-size:12px;color:#888;margin-top:0.5rem;">${ej} av ${ALL_GUESTS.length} har ännu inte svarat.</p>`;
+  <p style="font-size:12px;color:#888;margin-top:0.5rem;">${ej} av ${ALL_GUESTS.length} har ännu inte svarat. &nbsp;·&nbsp; <strong style="color:#185FA5;">${buss}</strong> åker buss, <strong style="color:#4A4A4A;">${bil}</strong> tar egen bil.</p>`;
 }
 
 function render(){
@@ -360,6 +394,7 @@ function render(){
   const li=vg.length===0?'<p style="color:#888;">Inga att visa.</p>':vg.map(g=>{
     const k=g.r+':'+g.f,v=S.rsvps[k];
     const kom = S.comments[k] || '';
+    const t = S.transport[k] || '';
     return`<div class="prow" style="flex-wrap:wrap;">
       <div style="flex:1;min-width:150px;"><div class="pname">${g.f} ${g.l}</div><div class="prel">${g.r}</div></div>
       <div class="cg">
@@ -367,6 +402,11 @@ function render(){
         <button class="cb ${v==='kanske'?'ck':''}" data-k="${k}" data-s="kanske" onclick="pickByKey(this.dataset.k,this.dataset.s)">~ Kanske</button>
         <button class="cb ${v==='nej'?'cn':''}" data-k="${k}" data-s="nej" onclick="pickByKey(this.dataset.k,this.dataset.s)">✗ Kan ej</button>
       </div>
+      ${(v==='ja'||v==='kanske')?`<div class="trow">
+        <span class="tlab">Transport:</span>
+        <button class="cb ${t==='buss'?'cbuss':''}" data-k="${k}" data-t="buss" onclick="pickTransportByKey(this.dataset.k,this.dataset.t)">Buss</button>
+        <button class="cb ${t==='bil'?'cbil':''}" data-k="${k}" data-t="bil" onclick="pickTransportByKey(this.dataset.k,this.dataset.t)">Egen bil</button>
+      </div>`:''}
       <div style="width:100%;margin-top:6px;padding-left:0;">
         <input type="text" placeholder="Kommentar (valfri)..." value="${kom.replace(/"/g,'&quot;')}"
           style="width:100%;padding:5px 8px;font-size:12px;border:1px solid #ddd;border-radius:6px;background:#fafafa;"
