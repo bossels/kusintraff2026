@@ -193,7 +193,7 @@ const ALL_GUESTS=[
 {r:"B4330",f:"Tilda",l:"Wetterskog"}
 ];
 
-const BUSS_PLATSER=50;
+const BUSS_PLATSER=72;
 
 let S={view:'login',user:null,rsvps:{},comments:{},transport:{},tab:'anmalan',sortCol:'r',sortDir:1,saving:false};
 
@@ -315,7 +315,7 @@ function renderBussbar(){
   else rubrik=kvar+' platser kvar i bussen';
   const oklara=s.ejSvarTransport+s.ejSvarAlls;
   const note = oklara>0
-    ? oklara+' personer har ännu inte valt transport. Väljer du bil om du kan, hjälper du oss att få plats åt alla.'
+    ? oklara+' personer har ännu inte valt transport. En till buss beställd - alla borde få plats.'
     : 'Alla har valt transport.';
   return `<div class="busbar ${cls}">
     <div class="busbar-top">
