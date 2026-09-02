@@ -155,10 +155,10 @@ const ALL_GUESTS=[
 {r:"B312",f:"Viktor",l:"Lindqvist",e:"viktor.lindqvist91@hotmail.com"},
 {r:"B3120",f:"Anna",l:"Nyman"},
 {r:"B3121",f:"Henry",l:"Lindqvist"},
-{r:"B3130",f:"Maria",l:"Gustafsson"},
-{r:"B3131",f:"Josefin",l:"Gustafsson",e:"josefinnnn@hotmail.com"},
-{r:"B3132",f:"Henning",l:"Gustafsson",e:"henninggustafsson@hotmail.com"},
-{r:"B3133",f:"Ester",l:"Gustafsson",e:"estergu@hotmail.com"},
+{r:"B3100",f:"Maria",l:"Gustafsson"},
+{r:"B3101",f:"Josefin",l:"Gustafsson",e:"josefinnnn@hotmail.com"},
+{r:"B3102",f:"Henning",l:"Gustafsson",e:"henninggustafsson@hotmail.com"},
+{r:"B3103",f:"Ester",l:"Gustafsson",e:"estergu@hotmail.com"},
 {r:"B32",f:"Karin (Ingegerd Maria)",l:"Blom",e:"k.blom64@hotmail.com"},
 {r:"B320",f:"Göran",l:"Blom"},
 {r:"B321",f:"Matilda (Karin Ina)",l:"Blom",e:"matilda.blom@hotmail.com"},
@@ -167,7 +167,7 @@ const ALL_GUESTS=[
 {r:"B3212",f:"Erik (Filip)",l:"Blom Åkerberg"},
 {r:"B322",f:"Johanna (Agnes Maria)",l:"Blom",e:"johanna.blom1@hotmail.com"},
 {r:"B3220",f:"Marc (Christofer)",l:"Pilotti"},
-{r:"B4",f:"Thorsten",l:"Sundström",e:"torsten.sundstrom@telia.com"},
+{r:"B4",f:"Torsten (Gustav)",l:"Sundström",e:"torsten.sundstrom@telia.com"},
 {r:"B41",f:"(Karl Torsten) Joakim",l:"Sundström",e:"joakim_sundstrom@telia.com"},
 {r:"B4100",f:"Christine (Anna)",l:"Strålman Sundström"},
 {r:"B411",f:"Per (Micael Joakim)",l:"Lind",e:"per.lind@edekyl.se"},
@@ -175,18 +175,18 @@ const ALL_GUESTS=[
 {r:"B4111",f:"Noomi (Edla)",l:"Lind"},
 {r:"B4112",f:"Viola",l:"Lind"},
 {r:"B412",f:"(Karl) Emil",l:"Törnqvist Sundström",e:"emil.tornkvist.sundstrom@gmail.com"},
-{r:"B42",f:"Robert",l:"Sundström",e:"robert@blabergen.com"},
-{r:"B420",f:"Annika",l:"HübbinetteSundström",e:"Annika@blabergen.com"},
-{r:"B421",f:"Emma",l:"Hübbinette Sundström",e:"emma.hs@hotmail.com"},
-{r:"B4210",f:"Adam",l:"Westholm",e:"adam_westholm@hotmail.com"},
+{r:"B42",f:"(David Gustav) Robert",l:"Sundström",e:"robert@blabergen.com"},
+{r:"B420",f:"Annika (Maria)",l:"HübbinetteSundström",e:"Annika@blabergen.com"},
+{r:"B421",f:"Emma (Maja Maria)",l:"Hübbinette Sundström",e:"emma.hs@hotmail.com"},
+{r:"B4210",f:"Adam (Oskar)",l:"Westholm",e:"adam_westholm@hotmail.com"},
 {r:"B4211",f:"Theodor",l:"Westholm"},
-{r:"B422",f:"Lisa",l:"Hübbinette Sundström",e:"hubbinettesundstrom@gmail.com"},
-{r:"B4220",f:"Elias",l:"Lindén",e:"elias28.linden@hotmail.com"},
+{r:"B422",f:"Lisa (Maria Nathalie)",l:"Hübbinette Sundström",e:"hubbinettesundstrom@gmail.com"},
+{r:"B4220",f:"Elias (Anders Miles)",l:"Lindén",e:"elias28.linden@hotmail.com"},
 {r:"B43",f:"Martin",l:"Sundström",e:"martin.t.sundstrom@gmail.com"},
 {r:"B430",f:"Ann-Louise",l:"Sundström",e:"annlouise.r.sundstrom@gmail.com"},
 {r:"B431",f:"Anna",l:"Sundström",e:"sundstromanna@live.com"},
 {r:"B4310",f:"Anton",l:"Olsson"},
-{r:"B4311",f:"Ivar William",l:""},
+{r:"B4311",f:"Ivar (William)",l:"Olsson Sundström"},
 {r:"B432",f:"Gustav",l:"Sundström",e:"gustav.me.sundstrom@gmail.com"},
 {r:"B4320",f:"Tara",l:"Kurtson",e:"tara.kurtson@gmail.com"},
 {r:"B433",f:"David",l:"Sundström",e:"david_sundstrom@outlook.com"},
@@ -502,7 +502,21 @@ function render(){
   </div>`;
 }
 
+function tryLoginFromUrl(){
+  const params=new URLSearchParams(window.location.search);
+  const email=params.get('email');
+  const relation=params.get('relation');
+  if(!email && !relation) return;
+  const ei=document.getElementById('ei');
+  const ri=document.getElementById('ri');
+  if(!ei || !ri) return;
+  if(email) ei.value=email;
+  if(relation) ri.value=relation;
+  if(email && relation) login();
+}
+
 render();
+tryLoginFromUrl();
 </script>
 </body>
 </html>
