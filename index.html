@@ -210,14 +210,13 @@ async function loadRsvps(){
     S.transport = {};
     items.forEach(item => {
       const rel = item.Relation || item.Title || '';
-      const fnamn = item.Fornamn || '';
       const svar = item.Svar || '';
       const kommentar = item.Kommentar || '';
       const transport = item.Transport || '';
-      if(rel && fnamn) {
-        if(svar) S.rsvps[rel+':'+fnamn] = svar;
-        if(kommentar) S.comments[rel+':'+fnamn] = kommentar;
-        if(transport) S.transport[rel+':'+fnamn] = transport;
+      if(rel) {
+        if(svar) S.rsvps[rel] = svar;
+        if(kommentar) S.comments[rel] = kommentar;
+        if(transport) S.transport[rel] = transport;
       }
     });
   } catch(e){ console.error('Fel vid hämtning:', e); }
@@ -235,7 +234,7 @@ async function saveRsvp(relation, fornamn, efternamn, svar, kommentar, transport
 }
 
 async function saveKommentarByKey(k, kommentar){
-  const g = ALL_GUESTS.find(x => (x.r+':'+x.f) === k);
+  const g = ALL_GUESTS.find(x => x.r === k);
   if(!g){ console.error('Hittade inte gäst för nyckel:', k); return; }
   saveKommentar(k, g.r, g.f, g.l, kommentar);
 }
@@ -272,7 +271,7 @@ function visibleForAnmalan(){
 
 function pickByKey(k, svar){
   // Look up guest by matching the full key r+':'+f
-  const g = ALL_GUESTS.find(x => (x.r+':'+x.f) === k);
+  const g = ALL_GUESTS.find(x => x.r === k);
   if(!g){ console.error('Hittade inte gäst för nyckel:', k); return; }
   pick(k, svar, g.r, g.f, g.l);
 }
@@ -293,7 +292,7 @@ async function pick(k, svar, relation, fornamn, efternamn){
 function bussStats(){
   let buss=0, bil=0, ejSvarTransport=0, ejSvarAlls=0;
   ALL_GUESTS.forEach(g=>{
-    const k=g.r+':'+g.f, v=S.rsvps[k], t=S.transport[k];
+    const k=g.r, v=S.rsvps[k], t=S.transport[k];
     if(!v){ ejSvarAlls++; return; }
     if(v==='nej') return;
     if(t==='buss') buss++;
@@ -328,7 +327,7 @@ function renderBussbar(){
 }
 
 function pickTransportByKey(k, val){
-  const g = ALL_GUESTS.find(x => (x.r+':'+x.f) === k);
+  const g = ALL_GUESTS.find(x => x.r === k);
   if(!g){ console.error('Hittade inte gäst för nyckel:', k); return; }
   pickTransport(k, val, g.r, g.f, g.l);
 }
@@ -401,25 +400,25 @@ function renderOversikt(){
   const sorted=[...ALL_GUESTS].sort((a,b)=>{
     if(S.sortCol==='namn')return(a.f+' '+a.l).localeCompare(b.f+' '+b.l,'sv')*S.sortDir;
     if(S.sortCol==='r')return a.r.localeCompare(b.r,'sv')*S.sortDir;
-    if(S.sortCol==='status')return(statusOrder(S.rsvps[a.r+':'+a.f])-statusOrder(S.rsvps[b.r+':'+b.f]))*S.sortDir;
-    if(S.sortCol==='transport')return(transportOrder(S.transport[a.r+':'+a.f])-transportOrder(S.transport[b.r+':'+b.f]))*S.sortDir;
+    if(S.sortCol==='status')return(statusOrder(S.rsvps[a.r])-statusOrder(S.rsvps[b.r]))*S.sortDir;
+    if(S.sortCol==='transport')return(transportOrder(S.transport[a.r])-transportOrder(S.transport[b.r]))*S.sortDir;
     return 0;
   });
   const arrow=col=>S.sortCol===col?(S.sortDir===1?'↑':'↓'):'↕';
   const rows=sorted.map(g=>{
-    const k=g.r+':'+g.f,v=S.rsvps[k];
+    const k=g.r,v=S.rsvps[k];
     const badge=v==='ja'?'<span class="badge bj">✓ Kommer</span>':v==='kanske'?'<span class="badge bk">~ Kanske</span>':v==='nej'?'<span class="badge bn">✗ Kan ej</span>':'<span class="badge be">Ej svarat</span>';
     const kom = S.comments[k] || '';
     const t = S.transport[k] || '';
     const tb = t==='buss'?'<span class="badge btbuss">Buss</span>':t==='bil'?'<span class="badge btbil">Egen bil</span>':'<span class="badge be">–</span>';
     return`<tr><td style="font-size:14px;">${g.f} ${g.l}</td><td style="color:#888;font-size:12px;">${g.r}</td><td>${badge}</td><td>${tb}</td><td style="font-size:12px;color:#555;">${kom}</td></tr>`;
   }).join('');
-  const ja=ALL_GUESTS.filter(g=>S.rsvps[g.r+':'+g.f]==='ja').length;
-  const kanske=ALL_GUESTS.filter(g=>S.rsvps[g.r+':'+g.f]==='kanske').length;
-  const nej=ALL_GUESTS.filter(g=>S.rsvps[g.r+':'+g.f]==='nej').length;
+  const ja=ALL_GUESTS.filter(g=>S.rsvps[g.r]==='ja').length;
+  const kanske=ALL_GUESTS.filter(g=>S.rsvps[g.r]==='kanske').length;
+  const nej=ALL_GUESTS.filter(g=>S.rsvps[g.r]==='nej').length;
   const ej=ALL_GUESTS.length-ja-kanske-nej;
-  const buss=ALL_GUESTS.filter(g=>S.transport[g.r+':'+g.f]==='buss').length;
-  const bil=ALL_GUESTS.filter(g=>S.transport[g.r+':'+g.f]==='bil').length;
+  const buss=ALL_GUESTS.filter(g=>S.transport[g.r]==='buss').length;
+  const bil=ALL_GUESTS.filter(g=>S.transport[g.r]==='bil').length;
   return`${renderBussbar()}<div class="og">
     <div class="sc"><div class="sn" style="color:#27500A;">${ja}</div><div class="slb">Kommer</div></div>
     <div class="sc"><div class="sn" style="color:#854F0B;">${kanske}</div><div class="slb">Kanske</div></div>
@@ -447,10 +446,10 @@ function render(){
   const vg=visibleForAnmalan();
   // Räknarna visar ALLTID totalt för alla gäster, inte bara den inloggades gren
   const cnt={ja:0,k:0,n:0};
-  ALL_GUESTS.forEach(g=>{const v=S.rsvps[g.r+':'+g.f];if(v==='ja')cnt.ja++;else if(v==='kanske')cnt.k++;else if(v==='nej')cnt.n++;});
+  ALL_GUESTS.forEach(g=>{const v=S.rsvps[g.r];if(v==='ja')cnt.ja++;else if(v==='kanske')cnt.k++;else if(v==='nej')cnt.n++;});
   const bussFull = bussStats().buss >= BUSS_PLATSER;
   const li=vg.length===0?'<p style="color:#888;">Inga att visa.</p>':vg.map(g=>{
-    const k=g.r+':'+g.f,v=S.rsvps[k];
+    const k=g.r,v=S.rsvps[k];
     const kom = S.comments[k] || '';
     const t = S.transport[k] || '';
     return`<div class="prow" style="flex-wrap:wrap;">
